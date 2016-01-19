@@ -27,7 +27,7 @@ Ptripes: 16.122 seconds
 
 pairs: 60.156 seconds
 
-stripes: 18.146 seconds
+stripes: 17.126 seconds
 
 
 
