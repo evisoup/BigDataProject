@@ -299,6 +299,12 @@ protected static class MyReducer extends
     FileInputFormat.setInputPaths(job, new Path(args.input));
     FileOutputFormat.setOutputPath(job, new Path(args.output));
 
+    job.getConfiguration().setInt("mapred.max.split.size", 1024 * 1024 * 64);
+    job.getConfiguration().set("mapreduce.map.memory.mb", "3072");
+    job.getConfiguration().set("mapreduce.map.java.opts", "-Xmx3072m");
+    job.getConfiguration().set("mapreduce.reduce.memory.mb", "3072");
+    job.getConfiguration().set("mapreduce.reduce.java.opts", "-Xmx3072m");
+
     job.setMapOutputKeyClass(PairOfStrings.class);
     job.setMapOutputValueClass(FloatWritable.class);
     job.setOutputKeyClass(PairOfStrings.class);
