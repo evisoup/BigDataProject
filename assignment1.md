@@ -19,7 +19,7 @@ I'm using this job to compute the PMI value of two words, using "Stripe" method.
 
 Pairs: 48.201 seconds
 
-Ptripes: 22.149 seconds
+Ptripes: 16.122 seconds
 
 
 
@@ -58,6 +58,8 @@ stripes: 18.146 seconds
 (personae, dramatis)	3.5316846
 
 (dramatis, personae)	3.5316846
+
+High PMI value may result from low probablity of apperace(i.e low p(x)) from both words, thus p(x)*p(y) would be very small, and it would make p(x,y)/p(x)p(y) a great value.
 
 
 
