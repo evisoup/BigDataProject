@@ -65,21 +65,19 @@ object ComputeBigramRelativeFrequencyPairs extends Tokenizer {
       .partitionBy(new myPartitioner(args.reducers())  )
 
 
-
       .mapPartitions(x => { 
         var marginal = 0.0f
         x.map( y => {
 
-                  if(y._1.split(" ")(1) == "*"){
-                      marginal = y._2.toFloat
-                      (y._1, y._2)
-                      
-                  } else {
-                      ( y._1, (y._2 / marginal ))
-               
-                  }
-            }
-          )
+                      if(y._1.split(" ")(1) == "*"){
+                          marginal = y._2.toFloat
+                          (y._1, y._2)
+                      } else {
+                          ( y._1, (y._2 / marginal ))
+                   
+                      }
+                    }
+        )
       })
 
     counts.saveAsTextFile(args.output())
