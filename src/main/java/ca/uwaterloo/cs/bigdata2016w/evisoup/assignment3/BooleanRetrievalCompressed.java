@@ -144,11 +144,11 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
     ArrayListWritable<PairOfInts> posting = new ArrayListWritable<PairOfInts>();
     
 
-    //System.out.println(">>>>>>>>>>Word: " + term);
+
     int part = (term.hashCode() & Integer.MAX_VALUE) % numReducer;
 
     String temp = "/part-r-0000" + Integer.toString(part);
-    //System.out.println(">>>>>>>>>>file: " + temp);
+
     index = new MapFile.Reader(new Path(indexPath + temp ), fs.getConf());
 
     key.set(term);
@@ -237,23 +237,11 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
           return f.isDirectory();
           }
     });
-    //System.out.println(">>>>>>>>>>Folders count: " + files.length);
-    // try{
 
-    //   numReducer = files.length;
-    //   System.out.println(">>>>>>>>>>Folders count 1: " + files.length);
+    Path pt = new Path( args.index  );
+    ContentSummary cs = fs.getContentSummary(pt);
+    numReducer = (int)cs.getDirectoryCount() - 1;
 
-    //}catch(Exception e) {
-
-     
-      Path pt = new Path( args.index  );
-      ContentSummary cs = fs.getContentSummary(pt);
-      numReducer = (int)cs.getDirectoryCount() - 1;
-      System.out.println(">>>>>>>>>>Folders count 2: " + numReducer);
-
-    // }
-    
-    
     indexPath = args.index;
 
     initialize(args.index, args.collection, fs);
