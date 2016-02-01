@@ -2,7 +2,9 @@ package ca.uwaterloo.cs.bigdata2016w.evisoup.assignment3;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.EOFException;
 import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -37,17 +39,30 @@ import org.apache.hadoop.io.WritableUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.DataInputStream;
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 
 
-public class BooleanRetrieval extends Configured implements Tool {
+
+public class BooleanRetrievalCompressed extends Configured implements Tool {
   private MapFile.Reader index;
   private FSDataInputStream collection;
   private Stack<Set<Integer>> stack;
+  private String indexPath;
+  private int numReducer;
 
-  private BooleanRetrieval() {}
+  //private int part;
+  private FileSystem fs;
 
-  private void initialize(String indexPath, String collectionPath, FileSystem fs) throws IOException {
-    index = new MapFile.Reader(new Path(indexPath + "/part-r-00000"), fs.getConf());
+  private BooleanRetrievalCompressed() {}
+
+  private void initialize(String indexPath, String collectionPath, FileSystem fs ) throws IOException {
+
+    //String temp = "/part-r-0000" + Integer.toString(part);
+    //System.out.println(">>>>>>>>>>file: " + temp);
+    //i~ndex = new MapFile.Reader(new Path(indexPath + "/part-r-0000"), fs.getConf());
+    //i~ndex = new MapFile.Reader(new Path(indexPath + temp ), fs.getConf());
     collection = fs.open(new Path(collectionPath));
     stack = new Stack<Set<Integer>>();
   }
@@ -112,22 +127,70 @@ public class BooleanRetrieval extends Configured implements Tool {
   private Set<Integer> fetchDocumentSet(String term) throws IOException {
     Set<Integer> set = new TreeSet<Integer>();
 
-    for (PairOfInts pair : fetchPostings(term)) {
+    try {
+      for (PairOfInts pair : fetchPostings(term)) {
       set.add(pair.getLeftElement());
-    }
+      }
+
+    }catch (Exception e) {}
+    
 
     return set;
   }
 
+/////////////////////////////////////////////////////////////////////////////////////
+  
   private ArrayListWritable<PairOfInts> fetchPostings(String term) throws IOException {
+    
     Text key = new Text();
-    PairOfWritables<IntWritable, ArrayListWritable<PairOfInts>> value =
-        new PairOfWritables<IntWritable, ArrayListWritable<PairOfInts>>();
+    BytesWritable val = new BytesWritable();
+    ArrayListWritable<PairOfInts> posting = new ArrayListWritable<PairOfInts>();
+    
+
+    //System.out.println(">>>>>>>>>>Word: " + term);
+    int part = (term.hashCode() & Integer.MAX_VALUE) % numReducer;
+
+    String temp = "/part-r-0000" + Integer.toString(part);
+    //System.out.println(">>>>>>>>>>file: " + temp);
+    index = new MapFile.Reader(new Path(indexPath + temp ), fs.getConf());
 
     key.set(term);
-    index.get(key, value);
+    index.get(key, val);
 
-    return value.getRightElement();
+    ByteArrayInputStream byteInput = new ByteArrayInputStream(val.getBytes() );
+    DataInputStream dataInput = new DataInputStream(byteInput);
+
+    try{
+      if( dataInput.available() != 0 ){
+        //System.out.println(">>>>>>FIRST IN<<<<<<<<");
+        int left = WritableUtils.readVInt(dataInput);
+        int right = WritableUtils.readVInt(dataInput);
+
+        int docID= 0;
+        
+          while( dataInput.available() != 0 ){
+            //System.out.println(">>>>>>IN<<<<<<<<");
+            docID += left ;
+            posting.add( new PairOfInts(docID,right) );
+            left = WritableUtils.readVInt(dataInput);
+            right = WritableUtils.readVInt(dataInput);
+          }
+
+
+      }else {
+        //System.out.println(">>>>>>FIRST OUT<<<<<<<<");
+      }
+
+    }catch (Exception e){}
+    
+    
+
+   // while( dataInput.available() > 0  )
+
+    return posting; 
+
+////////////////////////////////////////
+
   }
 
   public String fetchLine(long offset) throws IOException {
@@ -169,7 +232,55 @@ public class BooleanRetrieval extends Configured implements Tool {
       return -1;
     }
 
-    FileSystem fs = FileSystem.get(new Configuration());
+    //FileSystem fs = FileSystem.get(new Configuration());
+    fs = FileSystem.get(new Configuration());
+
+//args.query -> 找到AND旁边的次 -> 然后需要 num of reducer
+
+    //////////////
+    File file = new File( args.index );
+
+    File[] files = file.listFiles(new FileFilter() {
+      @Override
+      public boolean accept(File f) {
+          return f.isDirectory();
+          }
+    });
+    //System.out.println(">>>>>>>>>>Folders count: " + files.length);
+    numReducer = files.length;
+
+    /////////////
+
+    // String myQ = args.query;
+    // String temp = "";
+
+    // String[] terms = myQ.split("\\s+");
+
+    // for (String t : terms) {
+    //   if (t.equals("AND")) {
+    //     break;
+    //   } else {
+    //     temp = t;
+    //   }
+    // }
+    
+    // System.out.println(">>>>>>>>>>Word: " + temp);
+
+    // int go  = (temp.hashCode() & Integer.MAX_VALUE) % numReducer;
+
+    // System.out.println(">>>>>>>>>>go: " );
+    // System.out.println( go );
+    // System.out.println("<<<<<<" );
+
+    // part = go;
+    //////////////
+
+
+
+
+
+
+    indexPath = args.index;
 
     initialize(args.index, args.collection, fs);
 
@@ -185,6 +296,6 @@ public class BooleanRetrieval extends Configured implements Tool {
    * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
    */
   public static void main(String[] args) throws Exception {
-    ToolRunner.run(new BooleanRetrieval(), args);
+    ToolRunner.run(new BooleanRetrievalCompressed(), args);
   }
 }
