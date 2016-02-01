@@ -128,6 +128,8 @@ public class BuildInvertedIndexCompressed extends Configured implements Tool {
         PREDOCID.set(0);
         dataOutput.flush();
         byteOutput.reset();
+
+        //POSTINGS.setSize(0);
       
       }
       
@@ -212,7 +214,7 @@ public class BuildInvertedIndexCompressed extends Configured implements Tool {
     job.setMapOutputValueClass(VIntWritable.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(BytesWritable.class);
-    //job.setOutputFormatClass(MapFileOutputFormat.class);
+    job.setOutputFormatClass(MapFileOutputFormat.class);
 
     job.setMapperClass(MyMapper.class);
     job.setReducerClass(MyReducer.class);
