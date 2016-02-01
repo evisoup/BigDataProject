@@ -129,7 +129,7 @@ public class BuildInvertedIndexCompressed extends Configured implements Tool {
         dataOutput.flush();
         byteOutput.reset();
 
-        //POSTINGS.setSize(0);
+        POSTINGS.setSize(0);
       
       }
       
