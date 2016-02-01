@@ -13,6 +13,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapFile;
@@ -59,10 +60,6 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
 
   private void initialize(String indexPath, String collectionPath, FileSystem fs ) throws IOException {
 
-    //String temp = "/part-r-0000" + Integer.toString(part);
-    //System.out.println(">>>>>>>>>>file: " + temp);
-    //i~ndex = new MapFile.Reader(new Path(indexPath + "/part-r-0000"), fs.getConf());
-    //i~ndex = new MapFile.Reader(new Path(indexPath + temp ), fs.getConf());
     collection = fs.open(new Path(collectionPath));
     stack = new Stack<Set<Integer>>();
   }
@@ -162,14 +159,14 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
 
     try{
       if( dataInput.available() != 0 ){
-        //System.out.println(">>>>>>FIRST IN<<<<<<<<");
+
         int left = WritableUtils.readVInt(dataInput);
         int right = WritableUtils.readVInt(dataInput);
 
         int docID= 0;
         
           while( dataInput.available() != 0 ){
-            //System.out.println(">>>>>>IN<<<<<<<<");
+
             docID += left ;
             posting.add( new PairOfInts(docID,right) );
             left = WritableUtils.readVInt(dataInput);
@@ -183,9 +180,6 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
 
     }catch (Exception e){}
     
-    
-
-   // while( dataInput.available() > 0  )
 
     return posting; 
 
@@ -232,12 +226,9 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
       return -1;
     }
 
-    //FileSystem fs = FileSystem.get(new Configuration());
     fs = FileSystem.get(new Configuration());
 
-//args.query -> 找到AND旁边的次 -> 然后需要 num of reducer
-
-    //////////////
+    ////////////// calculating num reducers
     File file = new File( args.index );
 
     File[] files = file.listFiles(new FileFilter() {
@@ -247,39 +238,22 @@ public class BooleanRetrievalCompressed extends Configured implements Tool {
           }
     });
     //System.out.println(">>>>>>>>>>Folders count: " + files.length);
-    numReducer = files.length;
+    // try{
 
-    /////////////
+    //   numReducer = files.length;
+    //   System.out.println(">>>>>>>>>>Folders count 1: " + files.length);
 
-    // String myQ = args.query;
-    // String temp = "";
+    //}catch(Exception e) {
 
-    // String[] terms = myQ.split("\\s+");
+     
+      Path pt = new Path( args.index  );
+      ContentSummary cs = fs.getContentSummary(pt);
+      numReducer = (int)cs.getDirectoryCount() - 1;
+      System.out.println(">>>>>>>>>>Folders count 2: " + numReducer);
 
-    // for (String t : terms) {
-    //   if (t.equals("AND")) {
-    //     break;
-    //   } else {
-    //     temp = t;
-    //   }
     // }
     
-    // System.out.println(">>>>>>>>>>Word: " + temp);
-
-    // int go  = (temp.hashCode() & Integer.MAX_VALUE) % numReducer;
-
-    // System.out.println(">>>>>>>>>>go: " );
-    // System.out.println( go );
-    // System.out.println("<<<<<<" );
-
-    // part = go;
-    //////////////
-
-
-
-
-
-
+    
     indexPath = args.index;
 
     initialize(args.index, args.collection, fs);
