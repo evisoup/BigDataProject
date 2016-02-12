@@ -189,17 +189,6 @@ public class ExtractTopPersonalizedPageRankNodes extends Configured implements T
 
       }
 
-
-      // System.out.println("Source: " + Integer.parseInt(ssource[0]) );
-      // for (PairOfObjectFloat<Integer> pair : queue.extractAll()) {
-      //   int temp = pair.getLeftElement();
-      //   output.set(Integer.toString(pair.getLeftElement()) );
-      //   value.set((float)StrictMath.exp(pair.getRightElement()));
-      //   context.write(output, value);
-      //   System.out.println(String.format("%.5f %d", (float)StrictMath.exp(pair.getRightElement()), temp));
-      // }
-      // System.out.println(" " );
-
      /// 
     }
   }
