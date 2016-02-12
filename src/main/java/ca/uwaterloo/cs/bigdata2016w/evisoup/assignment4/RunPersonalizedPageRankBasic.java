@@ -525,13 +525,19 @@ public class RunPersonalizedPageRankBasic extends Configured implements Tool {
 
     // Find out how much PageRank mass got lost at the dangling nodes.
     //float missing = 1.0f - (float) StrictMath.exp(mass);
-    LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>finish P1 <<<<<<<<<<<<<<<<<<<<<<<<<");
     float[] missing = new float[inputSource.split(",").length];
     
     for(int g = 0; g < inputSource.split(",").length; g++){
-      missing[g] = 1.0f - (float) StrictMath.exp(mass[g]);
+
+      if( (1.0f - (float) StrictMath.exp(mass[g])) < 0.0f ){
+        missing[g] = 0.0f;
+
+      }else{
+        missing[g] = 1.0f - (float) StrictMath.exp(mass[g]);
+      }
+      
+
     }
-    LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>finish P1.5 <<<<<<<<<<<<<<<<<<<<<<<<<");
     // Job 2: distribute missing mass, take care of random jump factor.
     phase2(i, j, missing, basePath, numNodes, inputSource);
 
@@ -658,37 +664,30 @@ public class RunPersonalizedPageRankBasic extends Configured implements Tool {
     LOG.info(" - input: " + in);
     LOG.info(" - output: " + out);
     
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 1 <<<<<<<<<<<<<<<<<<<<<<<<< "); 
+ 
 
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", false);
     job.getConfiguration().setBoolean("mapred.reduce.tasks.speculative.execution", false);
 
     job.getConfiguration().setInt("NodeCount", numNodes);
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 2 <<<<<<<<<<<<<<<<<<<<<<<<< " + inputSource); 
 
     job.getConfiguration().setStrings(SOURCES, inputSource );
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 2.1 <<<<<<<<<<<<<<<<<<<<<<<<< " ); 
 
     String[] missingMassString = new String[ inputSource.split(",").length ];
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 2.2 Len miss <<<<<<<<<<<<<<<<<<<<<< " + missingMassString.length ); 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 2.2 Len input<<<<<<<<<<<<<<<<<<<<<< " + inputSource.split(",").length ); 
 
     for(int g = 0; g < inputSource.split(",").length ; g++){
-      LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 2.5 <<<<<<<<<< "  ); 
       missingMassString[g] = Float.toString(missing[g] );
 
     }
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 3 <<<<<<<<<<<<<<<<<<<<<<<<< "); 
 
     job.getConfiguration().setStrings("MissingMass", missingMassString) ;
 
     job.setNumReduceTasks(0);
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 4 <<<<<<<<<<<<<<<<<<<<<<<<< "); 
 
 
     FileInputFormat.setInputPaths(job, new Path(in));
@@ -703,11 +702,9 @@ public class RunPersonalizedPageRankBasic extends Configured implements Tool {
     job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(PageRankNode.class);
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 5 <<<<<<<<<<<<<<<<<<<<<<<<< "); 
 
     job.setMapperClass(MapPageRankMassDistributionClass.class);
 
-    LOG.info( ">>>>>>>>>>>>>>>>>>>>>>>> 6 <<<<<<<<<<<<<<<<<<<<<<<<< "); 
 
 
     FileSystem.get(getConf()).delete(new Path(out), true);
