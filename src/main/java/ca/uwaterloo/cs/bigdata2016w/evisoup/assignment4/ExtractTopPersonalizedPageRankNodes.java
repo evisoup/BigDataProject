@@ -1,11 +1,9 @@
-
  package ca.uwaterloo.cs.bigdata2016w.evisoup.assignment4;
 
-
-
-
-import java.util.ArrayList;
+import java.io.*;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.*;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -16,37 +14,219 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import tl.lin.data.pair.PairOfObjectFloat;
+import tl.lin.data.pair.*;
 import tl.lin.data.queue.TopScoredObjects;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+
 public class ExtractTopPersonalizedPageRankNodes extends Configured implements Tool {
-  
   private static final Logger LOG = Logger.getLogger(ExtractTopPersonalizedPageRankNodes.class);
-  
+
+  private static class MyMapper extends
+      Mapper<IntWritable, PageRankNode, PairOfInts, FloatWritable> {
+    private ArrayList<TopScoredObjects<Integer>> queue;
+    private static String inputSource;
+    private static String modSrouce[]; 
+
+    private static int sourceNum;
+
+
+    @Override
+    public void setup(Context context) throws IOException {
+      int k = context.getConfiguration().getInt("n", 100);
+      //queue = new TopScoredObjects<Integer>(k);
+      inputSource =context.getConfiguration().get(SOURCES);
+      modSrouce = inputSource.split(",");
+      sourceNum = modSrouce.length;
+
+      queue = new ArrayList<TopScoredObjects<Integer>>();
+
+      for(int i = 0; i < sourceNum; i ++){
+
+        queue.add( new TopScoredObjects<Integer>(k) );
+
+      }
+
+
+
+    }
+
+    @Override
+    public void map(IntWritable nid, PageRankNode node, Context context) throws IOException,
+        InterruptedException {
+          for(int i = 0; i < sourceNum; i ++){
+            queue.get(i).add( node.getNodeId(),  node.getPageRank().get(i) );
+          }
+      // queue.add(node.getNodeId(), node.getPageRank());
+    }
+
+    @Override
+    public void cleanup(Context context) throws IOException, InterruptedException {
+      PairOfInts key = new PairOfInts();
+      FloatWritable value = new FloatWritable();
+
+      for(int i = 0; i < sourceNum; i ++){
+        for (PairOfObjectFloat<Integer> pair : queue.get(i).extractAll()) {
+          key.set(pair.getLeftElement(), i);
+          //(nodeID, souceNum)
+          value.set(pair.getRightElement());
+          //(pageRank)
+          context.write(key, value);
+        }
+      }
+    }
+  }
+
+  private static class MyReducer extends
+      Reducer<PairOfInts, FloatWritable, Text, Text> {
+    private ArrayList<TopScoredObjects<Integer>> queue;
+    private static String inputSource;
+    private static String modSrouce[]; 
+
+    private static int sourceNum;
+        Text one; 
+    Text two; 
+
+
+    @Override
+    public void setup(Context context) throws IOException {
+      int k = context.getConfiguration().getInt("n", 100);
+      
+      inputSource =context.getConfiguration().get(SOURCES);
+      modSrouce = inputSource.split(",");
+      sourceNum = modSrouce.length;
+            one = new Text(); 
+      two = new Text(); 
+      queue = new ArrayList<TopScoredObjects<Integer>>();
+
+      for(int i = 0; i < sourceNum; i ++){
+
+        queue.add( new TopScoredObjects<Integer>(k) );
+
+      }
+    }
+
+    @Override
+    public void reduce(PairOfInts nid, Iterable<FloatWritable> iterable, Context context)
+        throws IOException {
+      Iterator<FloatWritable> iter = iterable.iterator();
+      
+
+      while(iter.hasNext() ){
+
+        queue.get(nid.getRightElement()).add(nid.getLeftElement(), iter.next().get());
+      }
+      //nid = (nodeID, souceNum)
+      //iterable = (pageRank)
+      //add =  (nodeID, pagerank)
+
+      // Shouldn't happen. Throw an exception.
+      if (iter.hasNext()) {
+        throw new RuntimeException();
+      }
+    }
+
+    @Override
+    public void cleanup(Context context) throws IOException, InterruptedException {
+      IntWritable key = new IntWritable();
+      FloatWritable value = new FloatWritable();
+
+
+    // private static String inputSource;
+    // private static String modSrouce[]; 
+    // private static int sourceNum;
+
+      //nid = (nodeID, souceNum)
+      //iterable = (pageRank)
+      //add =  (nodeID, pagerank)
+
+
+      for(int i = 0; i < sourceNum; i ++){
+        System.out.println("source: " + modSrouce[i]);
+
+        
+        one.set("source: " );
+        two.set(modSrouce[i]);
+        context.write(one, two );
+
+        for (PairOfObjectFloat<Integer> pair : queue.get(i).extractAll()) {
+          key.set(pair.getLeftElement());
+          value.set((float) Math.exp(pair.getRightElement()));
+          String left;
+          String right;
+          left = String.format("%.5f", (float)value.get()  );
+          right = Integer.toString(key.get());
+          
+          one.set(left);
+          two.set(right);
+          context.write(one, two );
+
+          System.out.println(left + " " +right);
+        }   
+
+        one.set(" " );
+        two.set(" ");
+        context.write(one, two );
+        System.out.println(" " );
+
+
+      }
+
+
+      // System.out.println("Source: " + Integer.parseInt(ssource[0]) );
+      // for (PairOfObjectFloat<Integer> pair : queue.extractAll()) {
+      //   int temp = pair.getLeftElement();
+      //   output.set(Integer.toString(pair.getLeftElement()) );
+      //   value.set((float)StrictMath.exp(pair.getRightElement()));
+      //   context.write(output, value);
+      //   System.out.println(String.format("%.5f %d", (float)StrictMath.exp(pair.getRightElement()), temp));
+      // }
+      // System.out.println(" " );
+
+     /// 
+    }
+  }
+
+  public ExtractTopPersonalizedPageRankNodes() {
+  }
+
   private static final String INPUT = "input";
+  private static final String OUTPUT = "output";
   private static final String TOP = "top";
   private static final String SOURCES = "sources";
-  
-  @Override
+
+  /**
+   * Runs this tool.
+   */
   @SuppressWarnings({ "static-access" })
   public int run(String[] args) throws Exception {
     Options options = new Options();
 
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("input path").create(INPUT));
+    options.addOption(OptionBuilder.withArgName("path").hasArg()
+        .withDescription("output path").create(OUTPUT));
     options.addOption(OptionBuilder.withArgName("num").hasArg()
         .withDescription("top n").create(TOP));
     options.addOption(OptionBuilder.withArgName("sources").hasArg()
-        .withDescription("source nodes").create(SOURCES));
+        .withDescription("sources").create(SOURCES));
 
     CommandLine cmdline;
     CommandLineParser parser = new GnuParser();
@@ -58,7 +238,7 @@ public class ExtractTopPersonalizedPageRankNodes extends Configured implements T
       return -1;
     }
 
-    if (!cmdline.hasOption(INPUT) ||  !cmdline.hasOption(TOP) ||  !cmdline.hasOption(SOURCES)) {
+    if (!cmdline.hasOption(SOURCES) || !cmdline.hasOption(INPUT) || !cmdline.hasOption(OUTPUT) || !cmdline.hasOption(TOP)) {
       System.out.println("args: " + Arrays.toString(args));
       HelpFormatter formatter = new HelpFormatter();
       formatter.setWidth(120);
@@ -66,77 +246,65 @@ public class ExtractTopPersonalizedPageRankNodes extends Configured implements T
       ToolRunner.printGenericCommandUsage(System.out);
       return -1;
     }
-    
-    
+
     String inputPath = cmdline.getOptionValue(INPUT);
+    String outputPath = cmdline.getOptionValue(OUTPUT);
     int n = Integer.parseInt(cmdline.getOptionValue(TOP));
-    String sourceValues = cmdline.getOptionValue(SOURCES);
-    String sources[] = sourceValues.split(",");
-    
+    String s = cmdline.getOptionValue(SOURCES);
+    //String sources = s.split(",");
+
     LOG.info("Tool name: " + ExtractTopPersonalizedPageRankNodes.class.getSimpleName());
     LOG.info(" - input: " + inputPath);
+    LOG.info(" - output: " + outputPath);
     LOG.info(" - top: " + n);
-    StringBuilder displaySources = new StringBuilder();
-    for (int i = 0; i < sources.length; i++) {
-      displaySources.append(sources[i] + " ");
-    }
-    LOG.info(" - sources are : " + displaySources);
-    int numberOfSources = sources.length;
-    LOG.info(" - number of sources :" + numberOfSources);
-    
-    // Initializing data structures to be used
-    ArrayList<TopScoredObjects<Integer>> listOfQueues =
-        new ArrayList<TopScoredObjects<Integer>>();
-    // We need one queue for each source
-    for (int i = 0; i < numberOfSources; i++) {
-      listOfQueues.add(new TopScoredObjects<Integer>(n));
-    }
+    LOG.info(" - sources: " + s);
 
-    // Working over here
-    SequenceFile.Reader seqFileReader;
     Configuration conf = getConf();
-    Path path = new Path(inputPath);
-    FileSystem fs = FileSystem.get(conf);
-    for (FileStatus st : fs.listStatus(path)) {
-      String fileName = st.getPath().getName();
-      if (fileName.contains("_SUCCESS")) {
-        continue;
-      }
-      // Read the sequence files
-      seqFileReader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(st.getPath()));
-      
-      IntWritable key = (IntWritable) seqFileReader.getKeyClass().newInstance();
-      PageRankNode node =
-          (PageRankNode) seqFileReader.getValueClass().newInstance();
+    conf.setInt("mapred.min.split.size", 1024 * 1024 * 1024);
+    conf.setInt("n", n);
+    conf.setStrings(SOURCES, s);
 
-      while (seqFileReader.next(key, node)) {
-        for (int i = 0; i < numberOfSources; i++) {
-          TopScoredObjects<Integer> queue = listOfQueues.get(i);
-          queue.add(key.get(), node.getPageRank().get(i));
-          listOfQueues.set(i, queue);
-        }
-      }
-      seqFileReader.close();
-    }
-    
-    // Now printing the top ten pageranks and their nodes 
-    for (int k=0;k<numberOfSources;k++) {
-      System.out.println("Source: " + sources[k]);
-      TopScoredObjects<Integer> queue = listOfQueues.get(k);
-      for (PairOfObjectFloat<Integer> p : queue.extractAll()) {
-        
-        System.out.println(String.format("%.5f %d", StrictMath.exp(p.getRightElement()), p.getLeftElement()));
-      }
-      System.out.println();
-    }
+    Job job = Job.getInstance(conf);
+    job.setJobName(ExtractTopPersonalizedPageRankNodes.class.getName() + ":" + inputPath);
+    job.setJarByClass(ExtractTopPersonalizedPageRankNodes.class);
+
+    job.setNumReduceTasks(1);
+
+    FileInputFormat.addInputPath(job, new Path(inputPath));
+    FileOutputFormat.setOutputPath(job, new Path(outputPath));
+
+    job.setInputFormatClass(SequenceFileInputFormat.class);
+    job.setOutputFormatClass(TextOutputFormat.class);
+
+    job.setMapOutputKeyClass(PairOfInts.class);
+    job.setMapOutputValueClass(FloatWritable.class);
+
+    // job.setOutputKeyClass(FloatWritable.class);
+    // job.setOutputValueClass(IntWritable.class);
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+
+
+    job.setMapperClass(MyMapper.class);
+    job.setReducerClass(MyReducer.class);
+
+    // Delete the output directory if it exists already.
+    FileSystem.get(conf).delete(new Path(outputPath), true);
+
+    job.waitForCompletion(true);
+
     return 0;
   }
-  
-  
+
+  /**
+   * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
+   */
   public static void main(String[] args) throws Exception {
-    ToolRunner.run(new ExtractTopPersonalizedPageRankNodes(), args);
+    int res = ToolRunner.run(new ExtractTopPersonalizedPageRankNodes(), args);
+    System.exit(res);
   }
-
-  
-
 }
+
+
+
