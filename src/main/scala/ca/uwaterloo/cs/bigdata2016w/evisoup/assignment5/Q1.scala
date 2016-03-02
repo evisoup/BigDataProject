@@ -9,6 +9,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 import org.rogach.scallop._
 
+
 // --input TPC-H-0.1-TXT --date '1996-01-01'
 // select count(*) from lineitem where l_shipdate = 'YYYY-MM-DD';
 
