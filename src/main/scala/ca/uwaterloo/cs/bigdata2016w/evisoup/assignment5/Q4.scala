@@ -26,7 +26,7 @@ object Q4 {
   val log = Logger.getLogger(getClass().getName())
 
   def main(argv: Array[String]) {
-    val args = new Conf3(argv)
+    val args = new Conf4(argv)
 
     log.info("Input: " + args.input())
     log.info(">>>>>>Date: " + args.date())
