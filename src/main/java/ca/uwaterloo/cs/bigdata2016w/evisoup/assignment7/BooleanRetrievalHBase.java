@@ -150,7 +150,7 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
     Set<Integer> set = new TreeSet<Integer>();
 
     //try {
-      Result posting = fetchPostings(term);
+      Result result = fetchPostings(term);
       //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
       
     //   NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
