@@ -166,15 +166,6 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
   }
 
 
-  // protected static class MyPartitioner extends Partitioner<PairOfStringInt, VIntWritable> {
-  //   @Override
-  //   public int getPartition(PairOfStringInt key, VIntWritable value, int numReduceTasks) {
-  //     return (key.getLeftElement().hashCode() & Integer.MAX_VALUE) % numReduceTasks;
-  //   }
-  // }
-
-
-
 
   private BuildInvertedIndexHBase() {}
 
