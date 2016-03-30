@@ -139,6 +139,7 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
           // }
           // //context.write(null, put);
           Iterator<PairOfInts> iter = values.iterator();
+           PairOfInts value = new PairOfInts();
           while (iter.hasNext()) {
               value = iter.next();
               Put put = new Put(Bytes.toBytes(key.toString()));
