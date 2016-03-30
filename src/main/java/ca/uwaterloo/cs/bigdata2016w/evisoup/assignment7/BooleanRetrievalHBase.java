@@ -63,6 +63,8 @@ import java.util.Map;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 
 
 
@@ -145,17 +147,19 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   private Set<Integer> fetchDocumentSet(String term) throws IOException {
     Set<Integer> set = new TreeSet<Integer>();
 
-    try {
+    //try {
 
       Result posting = fetchPostings(term);
-      Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
-
+      //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
+      
+      //NavigableMap<byte[], byte[]> postings = result.getFamilyMap(Bytes.toBytes("p"));
+      Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
       for (Map.Entry<byte[],byte[]> entry : famMap.entrySet()) {
           
           set.add(Bytes.toInt(entry.getKey()));
       }
 
-    }catch (Exception e) {}
+    //}catch (Exception e) {}
     
 
     return set;
@@ -254,7 +258,7 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
     table = hbaseConnection.getTable(args.table);
     //////////
 
-
+  FileSystem fs = FileSystem.get(new Configuration());
    initialize( args.collection, fs);
 
 
