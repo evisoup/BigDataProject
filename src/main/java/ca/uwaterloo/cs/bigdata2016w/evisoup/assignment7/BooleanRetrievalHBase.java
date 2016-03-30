@@ -150,18 +150,18 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
     Set<Integer> set = new TreeSet<Integer>();
 
     //try {
-      Result result = fetchPostings(term);
-      //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
+      Result posting = fetchPostings(term);
+      Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
       
     //   NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
     //   //Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
-    //   for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
+     for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
           
-    //       set.add(Bytes.toInt(entry.getKey()));
-    //   }
+          set.add(Bytes.toInt(entry.getKey()));
+      }
 
     // //}catch (Exception e) {}
-    // return set;
+      return set;
 
 
     //////
@@ -170,14 +170,14 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   
   //Get get = new Get(Bytes.toBytes(term));
    // Result result = table.get(get);
-    Map<byte[],byte[]> family = result.getFamilyMap(BuildInvertedIndexHBase.CF);//Bytes.toBytes("p"));
+  //   Map<byte[],byte[]> family = result.getFamilyMap(BuildInvertedIndexHBase.CF);//Bytes.toBytes("p"));
 
 
-    for(Map.Entry<byte[],byte[]> entry : family.entrySet()) {
-      byte [] qualifier = entry.getKey();
-      set.add(Bytes.toInt(qualifier));
-  }
-    return set;
+  //   for(Map.Entry<byte[],byte[]> entry : family.entrySet()) {
+  //     byte [] qualifier = entry.getKey();
+  //     set.add(Bytes.toInt(qualifier));
+  // }
+  //   return set;
 
     //////
   }
