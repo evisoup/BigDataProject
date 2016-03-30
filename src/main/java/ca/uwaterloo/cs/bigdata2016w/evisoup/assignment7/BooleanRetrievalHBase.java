@@ -152,7 +152,7 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
       Result posting = fetchPostings(term);
       //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
       
-      NavigableMap<byte[], byte[]> postings = result.getFamilyMap(  BuildInvertedIndexHBase.CF );
+      NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
       //Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
       for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
           
