@@ -74,6 +74,8 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   private FSDataInputStream collection;
   private Stack<Set<Integer>> stack;
   private HTableInterface table;
+  Configuration hbaseConfig;
+    HConnection hbaseConnection; 
 
   //private int part;
   private FileSystem fs;
@@ -145,22 +147,31 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   }
 
   private Set<Integer> fetchDocumentSet(String term) throws IOException {
-    Set<Integer> set = new TreeSet<Integer>();
+    // Set<Integer> set = new TreeSet<Integer>();
 
-    try {
-
-      Result posting = fetchPostings(term);
-      //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
+    // //try {
+    //   Result posting = fetchPostings(term);
+    //   //Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
       
-      NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
-      //Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
-      for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
+    //   NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
+    //   //Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
+    //   for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
           
-          set.add(Bytes.toInt(entry.getKey()));
-      }
+    //       set.add(Bytes.toInt(entry.getKey()));
+    //   }
 
-    }catch (Exception e) {}
-    
+    // //}catch (Exception e) {}
+    // return set;
+
+    Set<Integer> set = new TreeSet<Integer>();
+  
+  Get get = new Get(Bytes.toBytes(term));
+    Result result = table.get(get);
+  Map<byte[],byte[]> family = result.getFamilyMap(Bytes.toBytes("p"));
+    for(Map.Entry<byte[],byte[]> entry : family.entrySet()) {
+      byte [] qualifier = entry.getKey();
+      set.add(Bytes.toInt(qualifier));
+  }
 
     return set;
   }
@@ -169,35 +180,6 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   
   private Result fetchPostings(String term) throws IOException {
     
-    // Text key = new Text();
-    // BytesWritable val = new BytesWritable();
-    // ArrayListWritable<PairOfInts> posting = new ArrayListWritable<PairOfInts>();
-    // int part = (term.hashCode() & Integer.MAX_VALUE) % numReducer;
-    // String temp = "/part-r-0000" + Integer.toString(part);
-    // index = new MapFile.Reader(new Path(indexPath + temp ), fs.getConf());
-    // key.set(term);
-    // index.get(key, val);
-    // ByteArrayInputStream byteInput = new ByteArrayInputStream(val.getBytes() );
-    // DataInputStream dataInput = new DataInputStream(byteInput);
-    // try{
-    //   if( dataInput.available() != 0 ){
-    //     int left = WritableUtils.readVInt(dataInput);
-    //     int right = WritableUtils.readVInt(dataInput);
-    //     int docID= 0;
-    //       while( dataInput.available() != 0 ){
-
-    //         docID += left ;
-    //         posting.add( new PairOfInts(docID,right) );
-    //         left = WritableUtils.readVInt(dataInput);
-    //         right = WritableUtils.readVInt(dataInput);
-    //       }
-    //   }else {
-    //     //System.out.println(">>>>>>FIRST OUT<<<<<<<<");
-    //   }
-    // }catch (Exception e){}
-    
-    // return posting;
-
     Get get = new Get(Bytes.toBytes(term));
     Result result = table.get(get);
 
@@ -253,8 +235,8 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
     Configuration conf = getConf();
     conf.addResource(new Path(args.config));
 
-    Configuration hbaseConfig = HBaseConfiguration.create(conf);
-    HConnection hbaseConnection = HConnectionManager.createConnection(hbaseConfig);
+    hbaseConfig = HBaseConfiguration.create(conf);
+    hbaseConnection = HConnectionManager.createConnection(hbaseConfig);
     table = hbaseConnection.getTable(args.table);
     //////////
 
