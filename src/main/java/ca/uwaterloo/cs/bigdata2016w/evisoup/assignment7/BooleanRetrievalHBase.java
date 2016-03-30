@@ -249,6 +249,8 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
       System.out.println("gzipped collection is not seekable: use compressed version!");
       return -1;
     }
+    
+     fs = FileSystem.get(new Configuration());
     ///////
     Configuration conf = getConf();
     conf.addResource(new Path(args.config));
