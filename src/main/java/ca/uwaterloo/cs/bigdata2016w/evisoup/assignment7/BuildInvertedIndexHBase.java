@@ -82,8 +82,6 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
 
   private static class MyMapper extends Mapper<LongWritable, Text, Text, PairOfInts> {
     private static final Text WORD = new Text();
-    // private static final PairOfStringInt KEYPAIR = new PairOfStringInt();
-    // private static final VIntWritable VALUE = new VIntWritable();
 
 
     private static final Object2IntFrequencyDistribution<String> COUNTS =
@@ -112,9 +110,6 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
       // Emit postings.
       for (PairOfObjectInt<String> e : COUNTS) {
 
-        // KEYPAIR.set(e.getLeftElement(), (int)docno.get());
-        // VALUE.set(e.getRightElement());
-        // context.write(KEYPAIR,  VALUE);
         WORD.set( e.getLeftElement() );
         context.write( WORD, new PairOfInts( (int)docno.get() , e.getRightElement() ) );
 
@@ -131,21 +126,11 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
     public void reduce(Text key, Iterable<PairOfInts> values, Context context)
         throws IOException, InterruptedException {
 
-          //Put put = new Put(Bytes.toBytes(key.toString()));
           for (PairOfInts v : values) {
             Put put = new Put(Bytes.toBytes(key.toString()));
             put.add( CF, Bytes.toBytes( v.getLeftElement() ), Bytes.toBytes( v.getRightElement() ) );
             context.write(null, put);
-          }
-          //context.write(null, put);
-          //Iterator<PairOfInts> iter = values.iterator();
-          //  PairOfInts value = new PairOfInts();
-          // while (iter.hasNext()) {
-          //     value = iter.next();
-          //     Put put = new Put(Bytes.toBytes(key.toString()));
-		        //   put.add(CF, Bytes.toBytes(value.getLeftElement()), Bytes.toBytes(value.getRightElement()));
-		        //   context.write(null, put);
-          // }      
+          } 
     }
 
 
@@ -233,10 +218,6 @@ public class BuildInvertedIndexHBase extends Configured implements Tool {
 
     FileInputFormat.setInputPaths(job, new Path(args.input));
     TableMapReduceUtil.initTableReducerJob(args.table, MyReducer.class, job);
-
-    // // Delete the output directory if it exists already.
-    // Path outputDir = new Path(args.output);
-    // FileSystem.get(getConf()).delete(outputDir, true);
 
     long startTime = System.currentTimeMillis();
     job.waitForCompletion(true);
