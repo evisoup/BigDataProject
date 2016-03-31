@@ -149,37 +149,15 @@ public class BooleanRetrievalHBase extends Configured implements Tool {
   private Set<Integer> fetchDocumentSet(String term) throws IOException {
     Set<Integer> set = new TreeSet<Integer>();
 
-    //try {
       Result posting = fetchPostings(term);
       Map<byte[],byte[]> famMap = posting.getFamilyMap( BuildInvertedIndexHBase.CF );
-      
-    //   NavigableMap<byte[], byte[]> famMap = posting.getFamilyMap(  BuildInvertedIndexHBase.CF );
-    //   //Map<byte[],byte[]> famMap = posting.getFamilyMap(Bytes.toBytes("p"));
+
      for (Entry<byte[],byte[]> entry : famMap.entrySet()) {
           
           set.add(Bytes.toInt(entry.getKey()));
       }
 
-    // //}catch (Exception e) {}
       return set;
-
-
-    //////
-
-    //Set<Integer> set = new TreeSet<Integer>();
-  
-  //Get get = new Get(Bytes.toBytes(term));
-   // Result result = table.get(get);
-  //   Map<byte[],byte[]> family = result.getFamilyMap(BuildInvertedIndexHBase.CF);//Bytes.toBytes("p"));
-
-
-  //   for(Map.Entry<byte[],byte[]> entry : family.entrySet()) {
-  //     byte [] qualifier = entry.getKey();
-  //     set.add(Bytes.toInt(qualifier));
-  // }
-  //   return set;
-
-    //////
   }
 
   /////////////////////////////////////////////////////////////////////////////////////
